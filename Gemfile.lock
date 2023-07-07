@@ -1,9 +1,3 @@
-PATH
-  remote: ../ruby_bots
-  specs:
-    ruby_bots (0.2.0)
-      ruby-openai (~> 4.0)
-
 GEM
   remote: https://rubygems.org/
   specs:
@@ -187,6 +181,8 @@ GEM
       faraday (>= 1)
       faraday-multipart (>= 1)
     ruby2_keywords (0.0.5)
+    ruby_bots (0.2.0)
+      ruby-openai (~> 4.0)
     rubyzip (2.3.2)
     selenium-webdriver (4.10.0)
       rexml (~> 3.2, >= 3.2.5)
@@ -239,7 +235,7 @@ DEPENDENCIES
   pry
   puma (~> 5.0)
   rails (~> 7.0.4, >= 7.0.4.3)
-  ruby_bots!
+  ruby_bots
   selenium-webdriver
   sprockets-rails
   sqlite3 (~> 1.4)
