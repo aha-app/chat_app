@@ -1,19 +1,21 @@
-<div class="chat-sub-header">
-  <div class="bot-toggle">
-    <% Message::BOT_NAMES.keys.each do |bot| %>
-      <%= label_tag bot, bot, class: 'bot-toggle-button' do %>
-        <input type="radio" name="bot" value="<%= bot %>" id="<%= bot %>" <%= @current_bot == bot ? 'checked' : '' %>>
-        <span><%= Message::BOT_NAMES[bot] %></span>
+<div data-controller="chat">
+  <div class="chat-sub-header">
+    <div class="bot-toggle">
+      <% Message::BOT_NAMES.keys.each do |bot| %>
+        <%= label_tag bot, bot, class: 'bot-toggle-button', data: {action: "click->chat#clearMessages"} do %>
+          <input type="radio" name="bot" value="<%= bot %>" id="<%= bot %>" <%= @current_bot == bot ? 'checked' : '' %>>
+          <span><%= Message::BOT_NAMES[bot] %></span>
+        <% end %>
       <% end %>
-    <% end %>
+    </div>
   </div>
-</div>
-<div class="chat-messages sse-messages" data-chat-target="chatMessages">
-  <%= render @messages %>
-</div>
-<%= form_with(class: "chat-form", data: { action: 'chat#handleSubmit', chat_target: 'chatForm' }) do |f| %>
-  <div class="input-group">
-    <%= f.text_field :content, placeholder: "Type your message...", class: "chat-input", data: { chat_target: 'chatInput' } %>
-    <%= f.submit "Send", class: "send-button", data: { chat_target: "submitButton" } %>
+  <div class="chat-messages sse-messages" data-chat-target="chatMessages">
+    <%= render @messages %>
   </div>
-<% end %>
+  <%= form_with(class: "chat-form", data: { action: 'chat#handleSubmit', chat_target: 'chatForm' }) do |f| %>
+    <div class="input-group">
+      <%= f.text_field :content, placeholder: "Type your message...", class: "chat-input", data: { chat_target: 'chatInput' } %>
+      <%= f.submit "Send", class: "send-button", data: { chat_target: "submitButton" } %>
+    </div>
+  <% end %>
+</div>

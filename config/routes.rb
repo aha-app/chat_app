@@ -6,5 +6,9 @@ Rails.application.routes.draw do
 
   get "/chat", to: "chat#chat"
 
-  resources :messages, only: [:create, :index]
+  resources :messages, only: [:create, :index] do
+    collection do
+      get :bot_delete
+    end
+  end
 end

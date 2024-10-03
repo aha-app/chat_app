@@ -11,13 +11,18 @@
   <%= turbo_frame_tag "messages", class: "chat-messages turbo-messages" do %>
     <%= render @messages %>
   <% end %>
-  <%= form_with(url: messages_path(bot: @current_bot), class: "chat-form", id: "message-form", data: { chat_target: "turboForm" } ) do |f| %>
-    <%= f.hidden_field :bot %>
-    <div class="input-group">
-      <%= f.text_field :content, placeholder: "Type your message...", class: "chat-input", data: { chat_target: "turboInput" } %>
-      <%= f.submit "Send", class: "send-button" %>
-    </div>
-  <% end %>
+  <div data-controller="turbo-chat">
+    <%= form_with(url: messages_path(bot: @current_bot), class: "chat-form", id: "message-form", data: { turbo_chat_target: "turboForm" } ) do |f| %>
+      <%= f.hidden_field :bot %>
+      <div class="input-group">
+        <%= f.text_field :content, placeholder: "Type your message...", class: "chat-input", data: { turbo_chat_target: "turboInput" } %>
+        <%= f.submit "Send", class: "send-button" %>
+        <%= link_to bot_delete_messages_path(bot: @current_bot), class: "delete-button" do %>
+          Clear Messages
+        <% end %>
+      </div>
+    <% end %>
+  </div>
 
   <%= turbo_stream_from "#{@current_bot}:messages" %>
 <% end %>

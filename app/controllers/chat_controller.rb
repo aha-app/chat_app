@@ -2,9 +2,9 @@ class ChatController < ApplicationController
   include ActionController::Live
 
   def index
-    @current_bot ||= "ChatBot"
-    @current_mode = params[:mode] || "sse"
-    if @current_mode == "turbo"
+    @current_bot ||= 'ChatBot'
+    @current_mode = params[:mode] || 'sse'
+    if @current_mode == 'turbo'
       @messages = Message.for_bot(@current_bot).reverse
     else
       @messages = []

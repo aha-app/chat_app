@@ -14,6 +14,19 @@ class MessagesController < ApplicationController
     def index
       @messages = Message.for_bot(params[:bot]).reverse
       @current_bot = params[:bot]
+
+      respond_to do |format|
+        format.html
+        format.turbo_stream do
+          render turbo_stream: turbo_stream.replace(partial: "messages/index", locals: { messages: @messages, current_bot: @current_bot })
+        end
+      end
+    end
+
+    def bot_delete
+      bot = params[:bot] || 'ChatBot'
+      Message.where(bot:).destroy_all
+      redirect_to messages_path(bot:)
     end
   
     private

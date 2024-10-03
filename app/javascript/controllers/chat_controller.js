@@ -1,21 +1,11 @@
 import { Controller } from "@hotwired/stimulus";
 
 export default class extends Controller {
-  static targets = ["chatForm", "chatInput", "chatMessages", "submitButton", "turboForm", "turboInput"];
+  static targets = ["chatForm", "chatInput", "chatMessages", "submitButton"];
 
   connect() {
     this.messages = [];
     this.createStreamingMessageElement();
-    this.turboFormTarget.addEventListener("submit", this.submitTurboForm.bind(this));
-  }
-
-  submitTurboForm(event) {
-    event.preventDefault();
-    event.stopPropagation();
-
-    this.turboFormTarget.submit();
-    this.turboFormTarget.reset();
-    this.turboInputTarget.focus();
   }
 
   createStreamingMessageElement() {
@@ -27,6 +17,11 @@ export default class extends Controller {
     this.spinnerElement = document.createElement("div");
     this.spinnerElement.classList.add("spinner");
     this.streamingMessageElement.appendChild(this.spinnerElement);
+  }
+
+  clearMessages() {
+    this.chatMessagesTarget.innerHTML = "";
+    this.messages = [];
   }
 
   handleSubmit(event) {
@@ -118,9 +113,4 @@ export default class extends Controller {
     message.classList.add("message", role + "-message");
     return message;
   }
-
-  // handleTurboSubmit(event) {
-  //   console.log("We did a thing!");
-  //   this.turboInputTarget.value = "";
-  // }
 }
