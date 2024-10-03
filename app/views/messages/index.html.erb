@@ -1,0 +1,23 @@
+<%= turbo_frame_tag "turbo-form" do %>
+  <div class="chat-sub-header">
+    <div class="bot-toggle">
+      <% Message::BOT_NAMES.keys.each do |bot| %>
+        <%= label_tag bot, bot, class: 'bot-toggle-button' do %>
+          <%= link_to Message::BOT_NAMES[bot], messages_path(bot: bot), data: { turbo_frame: "turbo-form" }, class: "bot-toggle-button #{@current_bot == bot ? 'active' : ''}" %>
+        <% end %>
+      <% end %>
+    </div>
+  </div>
+  <%= turbo_frame_tag "messages", class: "chat-messages turbo-messages" do %>
+    <%= render @messages %>
+  <% end %>
+  <%= form_with(url: messages_path(bot: @current_bot), class: "chat-form", id: "message-form", data: { chat_target: "turboForm" } ) do |f| %>
+    <%= f.hidden_field :bot %>
+    <div class="input-group">
+      <%= f.text_field :content, placeholder: "Type your message...", class: "chat-input", data: { chat_target: "turboInput" } %>
+      <%= f.submit "Send", class: "send-button" %>
+    </div>
+  <% end %>
+
+  <%= turbo_stream_from "#{@current_bot}:messages" %>
+<% end %>

@@ -5,4 +5,6 @@ Rails.application.routes.draw do
   root "chat#index"
 
   get "/chat", to: "chat#chat"
+
+  resources :messages, only: [:create, :index]
 end

@@ -1,11 +1,32 @@
 import { Controller } from "@hotwired/stimulus";
 
 export default class extends Controller {
-  static targets = ["chatForm", "chatInput", "chatMessages", "submitButton", "streamingMessage"];
+  static targets = ["chatForm", "chatInput", "chatMessages", "submitButton", "turboForm", "turboInput"];
 
   connect() {
-    this.chatMessagesTarget.scrollTop = this.chatMessagesTarget.scrollHeight;
     this.messages = [];
+    this.createStreamingMessageElement();
+    this.turboFormTarget.addEventListener("submit", this.submitTurboForm.bind(this));
+  }
+
+  submitTurboForm(event) {
+    event.preventDefault();
+    event.stopPropagation();
+
+    this.turboFormTarget.submit();
+    this.turboFormTarget.reset();
+    this.turboInputTarget.focus();
+  }
+
+  createStreamingMessageElement() {
+    this.streamingMessageElement = document.createElement("div");
+    this.streamingMessageElement.classList.add("message", "assistant-message", "streaming-message");
+    this.streamingMessageElement.style.display = "none";
+
+    // Create spinner element
+    this.spinnerElement = document.createElement("div");
+    this.spinnerElement.classList.add("spinner");
+    this.streamingMessageElement.appendChild(this.spinnerElement);
   }
 
   handleSubmit(event) {
@@ -14,60 +35,77 @@ export default class extends Controller {
 
     const userMessage = this.chatInputTarget.value.trim();
 
-    // Check if userMessage is empty or consists of only whitespace
     if (!userMessage) {
       return;
     }
 
-    // Display user message
-    this.chatMessagesTarget.appendChild(
-      this.createMessageElement(userMessage, "user")
-    );
+    const userMessageElement = this.createMessageElement(userMessage, "user");
+    this.chatMessagesTarget.appendChild(userMessageElement);
     this.chatMessagesTarget.scrollTop = this.chatMessagesTarget.scrollHeight;
     this.messages.push({ role: "user", content: userMessage });
 
-    // Clear input and disable input and submit button
     this.chatInputTarget.value = "";
     this.submitButtonTarget.disabled = true;
     this.chatInputTarget.disabled = true;
 
-    // Get form params for authentication and append messages
+    // Get all radio buttons in the group
+    const radioButtons = document.querySelectorAll('input[name="bot"]');
+
+    // Find the selected radio button
+    let selectedBotType;
+    for (const radioButton of radioButtons) {
+      if (radioButton.checked) {
+        selectedBotType = radioButton.value;
+        break;
+      }
+    }
+
     const formData = new FormData(this.chatFormTarget);
     formData.append("messages", JSON.stringify(this.messages));
+    formData.append("bot", selectedBotType);
 
-    // Create EventSource
     const queryString = new URLSearchParams(formData);
-    const url = this.chatFormTarget.action + "?"  + queryString.toString();
+    const url = "http://localhost:3000/chat?"  + queryString.toString();
     this.eventSource = new EventSource(url);
 
-    // Add event listener for text received from EventSource
+    // Insert the streaming message element after the user message
+    this.streamingMessageElement.style.display = "block";
+    this.spinnerElement.style.display = "block"; // Show spinner
+    userMessageElement.insertAdjacentElement('afterend', this.streamingMessageElement);
+    this.chatMessagesTarget.scrollTop = this.chatMessagesTarget.scrollHeight;
+
     this.eventSource.addEventListener('text', event => {
       const data = JSON.parse(event.data);
-
-      // Display streaming message, append the text to the content
-      this.streamingMessageTarget.style.display = "block";
-      this.streamingMessageTarget.textContent = (this.streamingMessageTarget.textContent || "") + (data.text || "");
+      if (this.spinnerElement.style.display !== "none") {
+        // First response received, hide spinner and create text container
+        this.spinnerElement.style.display = "none";
+        this.textContainer = document.createElement("div");
+        this.streamingMessageElement.appendChild(this.textContainer);
+      }
+      this.textContainer.textContent += (data.text || "");
+      this.chatMessagesTarget.scrollTop = this.chatMessagesTarget.scrollHeight;
     });
 
-    // Add event listener for done event from EventSource
     this.eventSource.addEventListener('done', () => {
-      // Hide streaming message and display assistant message
-      this.streamingMessageTarget.style.display = "none";
-      const assistant_message = this.streamingMessageTarget.textContent;
-      this.streamingMessageTarget.textContent = "";
+      const assistantMessage = this.textContainer ? this.textContainer.textContent : "";
+      
+      // Replace the streaming message with a permanent assistant message
+      const assistantMessageElement = this.createMessageElement(assistantMessage, "assistant");
+      this.streamingMessageElement.replaceWith(assistantMessageElement);
+      
+      // Reset the streaming message element
+      this.streamingMessageElement.textContent = "";
+      this.streamingMessageElement.style.display = "none";
+      this.streamingMessageElement.appendChild(this.spinnerElement);
+      this.spinnerElement.style.display = "block";
 
-      this.chatMessagesTarget.appendChild(
-        this.createMessageElement(assistant_message, "assistant")
-      );
       this.chatMessagesTarget.scrollTop = this.chatMessagesTarget.scrollHeight;
 
-      // Add assistant response to messages
-      this.messages.push({ role: "assistant", content: assistant_message });
+      this.messages.push({ role: "assistant", content: assistantMessage });
 
-      // Close EventSource
       this.eventSource.close();
 
-      // Enable input and submit button
+      // Re-enable input and submit button, and focus on input
       this.submitButtonTarget.disabled = false;
       this.chatInputTarget.disabled = false;
       this.chatInputTarget.focus();
@@ -77,9 +115,12 @@ export default class extends Controller {
   createMessageElement(content, role) {
     const message = document.createElement("div");
     message.textContent = content;
-    message.classList.add(
-      role === "user" ? "user-message" : "assistant-message"
-    );
+    message.classList.add("message", role + "-message");
     return message;
   }
+
+  // handleTurboSubmit(event) {
+  //   console.log("We did a thing!");
+  //   this.turboInputTarget.value = "";
+  // }
 }
