@@ -1,6 +1,6 @@
 # RubyBots Example Chat Rails Application
 
-This is an example Rails application that uses the `ruby_bots` gem to create a streaming chat interface with OpenAI's `gpt-3.5-turbo` chat model.
+This is an example Rails application that uses the `ruby_bots` gem to create a streaming chat interface with OpenAI. The application provides an example of streaming the response using Server Sent Events and an example using Turbo Streams.
 
 To run the application, set up your `OPENAI_ACCESS_TOKEN` in the environment.
 

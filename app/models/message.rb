@@ -1,5 +1,5 @@
 class Message < ApplicationRecord
-  BOT_NAMES = { 
+  BOT_NAMES = {
     "ChatBot" => "Default",
     "BelleBot" => "Southern Belle",
     "PirateBot" => "Pirate"
@@ -11,10 +11,9 @@ class Message < ApplicationRecord
 
   scope :for_bot, ->(bot) { where(bot: bot) }
 
-  # When creating the message we prepend the list of messages which is reversed in the DOM
-  after_create_commit -> { broadcast_prepend_to [bot, "messages"], action: :prepend, target: :messages }
+  # broadcasts_to ->(message) { [message.bot, "messages"] }, action: :prepend
 
-  # When updating the message we replace the message in the DOM
-  after_update_commit -> { broadcast_replace_to [bot, "messages"], target: ActionView::RecordIdentifier.dom_id(self) }
-
+  # Ideally we would be using the above line instead of the two below, but there is a bug in rails/turbo
+  after_create_commit -> { broadcast_prepend_to [bot, "messages"]}
+  after_update_commit -> { broadcast_prepend_to [bot, "messages"]}
 end

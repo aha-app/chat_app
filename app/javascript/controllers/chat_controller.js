@@ -1,7 +1,7 @@
-import { Controller } from "@hotwired/stimulus";
+import { Controller } from '@hotwired/stimulus';
 
 export default class extends Controller {
-  static targets = ["chatForm", "chatInput", "chatMessages", "submitButton"];
+  static targets = ['chatForm', 'chatInput', 'chatMessages', 'submitButton'];
 
   connect() {
     this.messages = [];
@@ -9,108 +9,102 @@ export default class extends Controller {
   }
 
   createStreamingMessageElement() {
-    this.streamingMessageElement = document.createElement("div");
-    this.streamingMessageElement.classList.add("message", "assistant-message", "streaming-message");
-    this.streamingMessageElement.style.display = "none";
+    this.streamingMessageElement = document.createElement('div');
+    this.streamingMessageElement.classList.add('message', 'assistant-message', 'streaming-message');
+    this.streamingMessageElement.style.display = 'none';
 
-    // Create spinner element
-    this.spinnerElement = document.createElement("div");
-    this.spinnerElement.classList.add("spinner");
+    this.spinnerElement = document.createElement('div');
+    this.spinnerElement.classList.add('spinner');
     this.streamingMessageElement.appendChild(this.spinnerElement);
   }
 
   clearMessages() {
-    this.chatMessagesTarget.innerHTML = "";
+    this.chatMessagesTarget.innerHTML = '';
     this.messages = [];
+    this.chatInputTarget.focus();
   }
 
   handleSubmit(event) {
     event.preventDefault();
-    event.stopPropagation();
-
     const userMessage = this.chatInputTarget.value.trim();
+    if (!userMessage) return;
 
-    if (!userMessage) {
-      return;
-    }
+    this.appendMessage(userMessage, 'user');
+    this.messages.push({ role: 'user', content: userMessage });
 
-    const userMessageElement = this.createMessageElement(userMessage, "user");
-    this.chatMessagesTarget.appendChild(userMessageElement);
-    this.chatMessagesTarget.scrollTop = this.chatMessagesTarget.scrollHeight;
-    this.messages.push({ role: "user", content: userMessage });
+    this.chatInputTarget.value = '';
+    this.toggleInputs(true);
 
-    this.chatInputTarget.value = "";
-    this.submitButtonTarget.disabled = true;
-    this.chatInputTarget.disabled = true;
-
-    // Get all radio buttons in the group
-    const radioButtons = document.querySelectorAll('input[name="bot"]');
-
-    // Find the selected radio button
-    let selectedBotType;
-    for (const radioButton of radioButtons) {
-      if (radioButton.checked) {
-        selectedBotType = radioButton.value;
-        break;
-      }
-    }
-
+    const selectedBotType = document.querySelector('input[name="bot"]:checked').value;
     const formData = new FormData(this.chatFormTarget);
-    formData.append("messages", JSON.stringify(this.messages));
-    formData.append("bot", selectedBotType);
+    formData.append('messages', JSON.stringify(this.messages));
+    formData.append('bot', selectedBotType);
 
-    const queryString = new URLSearchParams(formData);
-    const url = "http://localhost:3000/chat?"  + queryString.toString();
+    const url = `http://localhost:3000/chat?${new URLSearchParams(formData)}`;
     this.eventSource = new EventSource(url);
 
-    // Insert the streaming message element after the user message
-    this.streamingMessageElement.style.display = "block";
-    this.spinnerElement.style.display = "block"; // Show spinner
-    userMessageElement.insertAdjacentElement('afterend', this.streamingMessageElement);
-    this.chatMessagesTarget.scrollTop = this.chatMessagesTarget.scrollHeight;
+    this.showStreamingMessage();
 
-    this.eventSource.addEventListener('text', event => {
-      const data = JSON.parse(event.data);
-      if (this.spinnerElement.style.display !== "none") {
-        // First response received, hide spinner and create text container
-        this.spinnerElement.style.display = "none";
-        this.textContainer = document.createElement("div");
-        this.streamingMessageElement.appendChild(this.textContainer);
-      }
-      this.textContainer.textContent += (data.text || "");
-      this.chatMessagesTarget.scrollTop = this.chatMessagesTarget.scrollHeight;
-    });
+    this.eventSource.addEventListener('text', this.handleTextEvent.bind(this));
+    this.eventSource.addEventListener('done', this.handleDoneEvent.bind(this));
+  }
 
-    this.eventSource.addEventListener('done', () => {
-      const assistantMessage = this.textContainer ? this.textContainer.textContent : "";
-      
-      // Replace the streaming message with a permanent assistant message
-      const assistantMessageElement = this.createMessageElement(assistantMessage, "assistant");
-      this.streamingMessageElement.replaceWith(assistantMessageElement);
-      
-      // Reset the streaming message element
-      this.streamingMessageElement.textContent = "";
-      this.streamingMessageElement.style.display = "none";
-      this.streamingMessageElement.appendChild(this.spinnerElement);
-      this.spinnerElement.style.display = "block";
-
-      this.chatMessagesTarget.scrollTop = this.chatMessagesTarget.scrollHeight;
-
-      this.messages.push({ role: "assistant", content: assistantMessage });
-
-      this.eventSource.close();
-
-      // Re-enable input and submit button, and focus on input
-      this.submitButtonTarget.disabled = false;
-      this.chatInputTarget.disabled = false;
-      this.chatInputTarget.focus();
-    });
+  appendMessage(content, role) {
+    const messageElement = this.createMessageElement(content, role);
+    this.chatMessagesTarget.appendChild(messageElement);
+    this.scrollToBottom();
+    return messageElement;
   }
 
   createMessageElement(content, role) {
-    const message = document.createElement("div");
+    const message = document.createElement('div');
     message.textContent = content;
-    message.classList.add("message", role + "-message");
+    message.classList.add('message', `${role}-message`);
     return message;
+  }
+
+  toggleInputs(disabled) {
+    this.submitButtonTarget.disabled = disabled;
+    this.chatInputTarget.disabled = disabled;
+  }
+
+  showStreamingMessage() {
+    this.streamingMessageElement.style.display = 'block';
+    this.spinnerElement.style.display = 'block';
+    this.chatMessagesTarget.appendChild(this.streamingMessageElement);
+    this.scrollToBottom();
+  }
+
+  handleTextEvent(event) {
+    const data = JSON.parse(event.data);
+    if (this.spinnerElement.style.display !== 'none') {
+      this.spinnerElement.style.display = 'none';
+      this.textContainer = document.createElement('div');
+      this.streamingMessageElement.appendChild(this.textContainer);
+    }
+    this.textContainer.textContent += (data.text || '');
+    this.scrollToBottom();
+  }
+
+  handleDoneEvent() {
+    const assistantMessage = this.textContainer ? this.textContainer.textContent : '';
+    this.appendMessage(assistantMessage, 'assistant');
+    this.messages.push({ role: 'assistant', content: assistantMessage });
+
+    this.resetStreamingMessage();
+    this.eventSource.close();
+    this.toggleInputs(false);
+    this.chatInputTarget.focus();
+  }
+
+  resetStreamingMessage() {
+    this.streamingMessageElement.textContent = '';
+    this.streamingMessageElement.style.display = 'none';
+    this.streamingMessageElement.appendChild(this.spinnerElement);
+    this.spinnerElement.style.display = 'block';
+  }
+
+  scrollToBottom() {
+    this.chatMessagesTarget.scrollTop = this.chatMessagesTarget.scrollHeight;
   }
 }
